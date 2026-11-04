@@ -836,7 +836,7 @@ void write_newhampshire_Cluster( FILE *handle, struct Cluster *clust,
   int m = a + l / 2;
 
   if ( l == 1 ) {
-    fprintf( handle, "%s:%.5f", clust->members[a]->name, 0.0 );
+    fprintf( handle, "%s:%.12f", clust->members[a]->name, 0.0 );
     return;
   }
 
@@ -844,7 +844,7 @@ void write_newhampshire_Cluster( FILE *handle, struct Cluster *clust,
   write_newhampshire_Cluster( handle, clust, a, m - 1 );
   fprintf( handle, ",\n" );
   write_newhampshire_Cluster( handle, clust, m, b );
-  fprintf( handle, ")\n:%.5f", 0.0 );
+  fprintf( handle, ")\n:%.12f", 0.0 );
 
 }
 
@@ -878,7 +878,7 @@ void write_newhampshire_Tnode( FILE *handle, struct Tnode *node,
       if (node->clust->clustersize == 0 || node->clust->members == NULL)
 	fatal_util( "Fatal Error: encountered a leaf node with no cluster info"); 
       else if (node->clust->clustersize == 1) 
-	fprintf( handle, "%s:%.5f", node->clust->members[0]->name, node->distance );
+	fprintf( handle, "%s:%.12f", node->clust->members[0]->name, node->distance );
       else {
 	/* if there is more than one sequence belonging to the cluster, then this piece
 	   of code will generate some internal nodes in the output tree with no bootstrap
@@ -893,10 +893,10 @@ void write_newhampshire_Tnode( FILE *handle, struct Tnode *node,
       fprintf( handle, ",\n" );
       write_newhampshire_Tnode( handle, node->right, show_bootstraps );
       if (show_bootstraps) {
-	fprintf( handle, ")\n%d:%.5f", node->bootstrap, node->distance );
+	fprintf( handle, ")\n%d:%.12f", node->bootstrap, node->distance );
       }
       else {
-	fprintf( handle, ")\n:%.5f", node->distance);
+	fprintf( handle, ")\n:%.12f", node->distance);
       }
     }
     /* else do nothing */

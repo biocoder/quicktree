@@ -1,0 +1,85 @@
+name: Build QuickTree macOS ARM64 (12 decimals)
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'Makefile'
+      - '.github/workflows/build-macos-arm64.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build the committed patched source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          make -B quicktree CC="clang -arch arm64"
+          file quicktree
+          lipo -verify_arch arm64 quicktree
+          otool -L quicktree
+
+      - name: Test leaf and internal branch precision
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from decimal import Decimal
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import tempfile
+
+          executable = str(Path('quicktree').resolve())
+          # Four taxa give four leaf branches and an internal branch.
+          # Every intended length is positive and below the old 5-place limit.
+          matrix = (
+              '4\n'
+              'A 0 0.0000003 0.0000008 0.0000009\n'
+              'B 0.0000003 0 0.0000009 0.0000010\n'
+              'C 0.0000008 0.0000009 0 0.0000009\n'
+              'D 0.0000009 0.0000010 0.0000009 0\n'
+          )
+          with tempfile.TemporaryDirectory(dir=os.environ['RUNNER_TEMP']) as directory:
+              matrix_file = Path(directory) / 'tiny.phy'
+              matrix_file.write_text(matrix)
+              result = subprocess.run(
+                  [executable, '-in', 'm', str(matrix_file)],
+                  text=True, capture_output=True, check=True
+              )
+          tree = result.stdout
+          print(tree)
+          lengths = re.findall(r':([^,();\s]+)', tree)
+          assert len(lengths) == 5, f'Expected five branches: {tree}'
+          assert re.search(r'\)\s*:', tree), f'Missing internal branch: {tree}'
+          assert all(re.fullmatch(r'-?\d+\.\d{12}', value) for value in lengths), lengths
+          assert all(Decimal('0') < Decimal(value) < Decimal('0.00001') for value in lengths), lengths
+          print('PASS: leaf and internal branches retain 12 decimal places and remain nonzero.')
+          PY
+
+      - name: Package the executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf quicktree-osx-arm64-12dp.tar.gz quicktree LICENSE
+
+      - uses: actions/upload-artifact@v7
+        with:
+          path: quicktree-osx-arm64-12dp.tar.gz
+          archive: false
+          if-no-files-found: error
