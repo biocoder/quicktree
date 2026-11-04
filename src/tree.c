@@ -15,6 +15,8 @@
  *-------------------------------------------------------------------
  * NOTES:
  * Functions for the manipulation of trees
+ *
+ * github.com/biocoder: Newick branch length extended to 12 decimal places.
  **********************************************************************/
 #include "tree.h"
 
