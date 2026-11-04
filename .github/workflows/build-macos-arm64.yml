@@ -30,7 +30,7 @@ jobs:
           test "$(uname -m)" = arm64
           make -B quicktree CC="clang -arch arm64"
           file quicktree
-          lipo -verify_arch arm64 quicktree
+          lipo quicktree -verify_arch arm64
           otool -L quicktree
 
       - name: Test leaf and internal branch precision
